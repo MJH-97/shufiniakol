@@ -1,0 +1,114 @@
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+  forward-headers-strategy: framework
+
+spring:
+  application:
+    name: sho-fini-akol-backend
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+  datasource:
+#    url: ${DB_URL:jdbc:postgresql://localhost:5432/shofiniakol}
+    url: ${DB_URL:jdbc:postgresql://ep-floral-voice-b5bm54rx-pooler.c-7.us-east-2.aws.neon.tech/shufiniakol?sslmode=require&channel_binding=require}
+#    username: ${DB_USERNAME:postgres}
+    username: ${DB_USERNAME:neondb_owner}
+#    password: ${DB_PASSWORD:postgres}
+    password: ${DB_PASSWORD:npg_tv8xHylpr9Aj}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:10}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.jdbc.time_zone: UTC
+      hibernate.default_batch_fetch_size: 100
+  flyway:
+    enabled: true
+    locations: ${FLYWAY_LOCATIONS:classpath:db/migration,classpath:db/demo}
+    ignore-migration-patterns: "*:missing"
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    mapper:
+      accept-case-insensitive-enums: true
+    deserialization:
+      fail-on-unknown-properties: false
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:true}
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:true}
+    path: /swagger-ui.html
+
+app:
+  timezone: Asia/Damascus
+  public-base-url: ${APP_PUBLIC_BASE_URL:http://localhost:8080}
+
+  security:
+    jwt-secret: ${JWT_SECRET:dev-only-secret-change-me-dev-only-secret-change-me}
+    access-token-ttl-minutes: ${ACCESS_TOKEN_TTL_MINUTES:30}
+    refresh-token-ttl-days: ${REFRESH_TOKEN_TTL_DAYS:30}
+    cors-allowed-origins: ${CORS_ALLOWED_ORIGINS:*}
+
+  otp:
+    length: 6
+    ttl-seconds: 300
+    resend-cooldown-seconds: 60
+    max-attempts: 5
+    max-per-hour: 6
+    pepper: ${OTP_PEPPER:dev-pepper}
+    # DEV ONLY - when set, this code is accepted for every phone number.
+    dev-fixed-code: ${OTP_DEV_FIXED_CODE:123456}
+
+  bootstrap:
+    admin-phone: ${BOOTSTRAP_ADMIN_PHONE:}
+
+  discover:
+    budget-presets: [20000, 30000, 50000, 75000, 100000]
+    max-distance-km: 10
+    limited-time-hours: 48
+    weights:
+      discount: 0.25
+      rating: 0.25
+      portion: 0.20
+      delivery: 0.10
+      distance: 0.10
+      budget-fit: 0.10
+
+  delivery:
+    default-max-distance-km: 15
+    default-eta-extra-minutes: 15
+
+  storage:
+    dir: ${STORAGE_DIR:./uploads}
+
+  support:
+    whatsapp: ${SUPPORT_WHATSAPP:963900000000}
+    phone: ${SUPPORT_PHONE:+963900000000}
+    terms-url: https://shofiniakol.com/terms
+    privacy-url: https://shofiniakol.com/privacy
+    app-version: 1.0.0
+
+  payments:
+    sham-cash-account: ${SHAM_CASH_ACCOUNT:}
+
+  jobs:
+    expiry-check-ms: 300000
+    expiry-window-hours: 2
