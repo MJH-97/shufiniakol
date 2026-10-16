@@ -10,7 +10,7 @@ spring:
     timeout-per-shutdown-phase: 20s
   datasource:
 #    url: ${DB_URL:jdbc:postgresql://localhost:5432/shofiniakol}
-    url: ${DB_URL:jdbc:postgresql://postgres:tvBEoRmwkaNYCcCCFGvdYFvUvNyhlJOo@postgres.railway.internal:5432/railway}
+    url: ${DB_URL:jdbc:postgresql://postgres:railway.internal:5432/railway}
 #    url: ${DB_URL:jdbc:postgresql://ep-floral-voice-b5bm54rx-pooler.c-7.us-east-2.aws.neon.tech/shufiniakol?sslmode=require&channel_binding=require}
     username: ${DB_USERNAME:postgres}
 #    username: ${DB_USERNAME:neondb_owner}
