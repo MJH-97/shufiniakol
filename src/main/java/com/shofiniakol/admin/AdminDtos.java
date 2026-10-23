@@ -23,6 +23,25 @@ public final class AdminDtos {
     }
 
     // ---------------- restaurants ----------------
+    /** Partial update used by the settings screen: only the fields that are sent are changed (send "" to clear text). */
+    public record RestaurantPatchRequest(
+            @Size(max = 120) String name,
+            @Size(max = 1000) String description,
+            @Size(max = 500) String logoUrl,
+            @Size(max = 500) String coverUrl,
+            @Size(max = 30) String phone,
+            @Size(max = 80) String city,
+            @Size(max = 80) String area,
+            @Size(max = 250) String addressLine,
+            @Min(-90) @Max(90) Double latitude,
+            @Min(-180) @Max(180) Double longitude,
+            LocalTime opensAt, LocalTime closesAt,
+            Boolean acceptingOrders,
+            @PositiveOrZero Long defaultDeliveryFee,
+            @PositiveOrZero Long minOrderAmount,
+            @Positive Integer avgPrepMinutes) {
+    }
+
     public record RestaurantRequest(
             @NotBlank(message = "اسم المطعم مطلوب") @Size(max = 120) String name,
             @Size(max = 1000) String description,
@@ -68,11 +87,13 @@ public final class AdminDtos {
             @NotBlank(message = "اسم الصنف مطلوب") @Size(max = 150) String name,
             @Size(max = 600) String description,
             @NotNull(message = "السعر مطلوب") @PositiveOrZero Long price,
-            @Size(max = 500) String imageUrl, Boolean available, Integer sortOrder, UUID categoryId) {
+            @Size(max = 500) String imageUrl, Boolean available, Integer sortOrder, UUID categoryId,
+            /** Optional: several categories per item. When sent it wins over category_id (first = main category). */
+            List<UUID> categoryIds) {
     }
 
     public record MenuItemAdminDto(UUID id, String name, String description, long price, String imageUrl,
-                                   boolean available, int sortOrder, UUID categoryId) {
+                                   boolean available, int sortOrder, UUID categoryId, List<UUID> categoryIds) {
     }
 
     public record ZoneRequest(
@@ -102,7 +123,7 @@ public final class AdminDtos {
 
     public record OfferRequest(
             @NotNull(message = "المطعم مطلوب") UUID restaurantId,
-            @NotNull(message = "الفئة مطلوبة") UUID categoryId,
+            UUID categoryId, // optional: derived from the linked menu items / the restaurant when omitted
             @NotBlank(message = "عنوان العرض مطلوب") @Size(max = 150) String title,
             @Size(max = 1000) String description,
             @Size(max = 500) String imageUrl,

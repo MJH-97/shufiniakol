@@ -4,6 +4,7 @@ import com.shofiniakol.admin.AdminDtos.AdminRestaurantDto;
 import com.shofiniakol.admin.AdminDtos.CategoryRequest;
 import com.shofiniakol.admin.AdminDtos.MenuItemAdminDto;
 import com.shofiniakol.admin.AdminDtos.MenuItemRequest;
+import com.shofiniakol.admin.AdminDtos.RestaurantPatchRequest;
 import com.shofiniakol.admin.AdminDtos.RestaurantRequest;
 import com.shofiniakol.admin.AdminDtos.ZoneDto;
 import com.shofiniakol.admin.AdminDtos.ZoneRequest;
@@ -18,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -62,6 +64,12 @@ public class AdminCatalogController {
     @PutMapping("/restaurants/{id}")
     public AdminRestaurantDto updateRestaurant(@PathVariable UUID id, @Valid @RequestBody RestaurantRequest req) {
         return service.updateRestaurant(id, req);
+    }
+
+    /** Settings screen: partial update, so fields the form does not show (logo, hours, ...) are never wiped. */
+    @PatchMapping("/restaurants/{id}")
+    public AdminRestaurantDto patchRestaurant(@PathVariable UUID id, @Valid @RequestBody RestaurantPatchRequest req) {
+        return service.patchRestaurant(id, req);
     }
 
     @DeleteMapping("/restaurants/{id}")

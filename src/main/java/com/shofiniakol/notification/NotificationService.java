@@ -63,6 +63,18 @@ public class NotificationService {
         return repo.markAllRead(userId, Instant.now());
     }
 
+    @Transactional
+    public void delete(UUID userId, UUID id) {
+        Notification n = repo.findByIdAndUserId(id, userId)
+                .orElseThrow(() -> ApiException.notFound("NOTIFICATION_NOT_FOUND", "الإشعار غير موجود"));
+        repo.delete(n);
+    }
+
+    @Transactional
+    public int deleteAll(UUID userId) {
+        return repo.deleteByUser(userId);
+    }
+
     public record NotificationDto(UUID id, NotificationType type, String title, String body, UUID offerId,
                                   UUID orderId, UUID restaurantId, boolean read, Instant createdAt) {
         static NotificationDto from(Notification n) {

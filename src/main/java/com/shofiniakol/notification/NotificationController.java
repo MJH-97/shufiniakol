@@ -6,6 +6,7 @@ import com.shofiniakol.security.SecurityUtils;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -39,6 +40,18 @@ public class NotificationController {
     public ResponseEntity<Void> markRead(@PathVariable UUID id) {
         service.markRead(SecurityUtils.currentUserId(), id);
         return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable UUID id) {
+        service.delete(SecurityUtils.currentUserId(), id);
+        return ResponseEntity.noContent().build();
+    }
+
+    /** "مسح الكل" */
+    @DeleteMapping
+    public Map<String, Integer> clearAll() {
+        return Map.of("deleted", service.deleteAll(SecurityUtils.currentUserId()));
     }
 
     /** "تحديد الكل كمقروء" */

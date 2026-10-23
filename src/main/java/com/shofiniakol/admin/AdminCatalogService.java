@@ -4,6 +4,7 @@ import com.shofiniakol.admin.AdminDtos.AdminRestaurantDto;
 import com.shofiniakol.admin.AdminDtos.CategoryRequest;
 import com.shofiniakol.admin.AdminDtos.MenuItemAdminDto;
 import com.shofiniakol.admin.AdminDtos.MenuItemRequest;
+import com.shofiniakol.admin.AdminDtos.RestaurantPatchRequest;
 import com.shofiniakol.admin.AdminDtos.RestaurantRequest;
 import com.shofiniakol.admin.AdminDtos.ZoneDto;
 import com.shofiniakol.admin.AdminDtos.ZoneRequest;
@@ -76,6 +77,65 @@ public class AdminCatalogService {
     public AdminRestaurantDto updateRestaurant(UUID id, RestaurantRequest req) {
         Restaurant r = access.requireRestaurant(id);
         apply(r, req, access.isAdmin());
+        return toDto(r);
+    }
+
+    /** Partial update (owners and admins). Admin-only fields (owner, commission, active) are not part of it. */
+    @Transactional
+    public AdminRestaurantDto patchRestaurant(UUID id, RestaurantPatchRequest q) {
+        Restaurant r = access.requireRestaurant(id);
+        if (q.name() != null) {
+            if (q.name().isBlank()) {
+                throw ApiException.badRequest("INVALID_NAME", "اسم المطعم مطلوب");
+            }
+            r.setName(q.name().trim());
+        }
+        if (q.description() != null) {
+            r.setDescription(blank(q.description()));
+        }
+        if (q.logoUrl() != null) {
+            r.setLogoUrl(blank(q.logoUrl()));
+        }
+        if (q.coverUrl() != null) {
+            r.setCoverUrl(blank(q.coverUrl()));
+        }
+        if (q.phone() != null) {
+            r.setPhone(blank(q.phone()));
+        }
+        if (q.city() != null && !q.city().isBlank()) {
+            r.setCity(q.city().trim());
+        }
+        if (q.area() != null) {
+            r.setArea(blank(q.area()));
+        }
+        if (q.addressLine() != null) {
+            r.setAddressLine(blank(q.addressLine()));
+        }
+        if (q.latitude() != null) {
+            r.setLatitude(q.latitude());
+        }
+        if (q.longitude() != null) {
+            r.setLongitude(q.longitude());
+        }
+        if (q.opensAt() != null || q.closesAt() != null) {
+            if (q.opensAt() == null || q.closesAt() == null) {
+                throw ApiException.badRequest("INVALID_HOURS", "حدد وقت الفتح والإغلاق معاً");
+            }
+            r.setOpensAt(q.opensAt());
+            r.setClosesAt(q.closesAt());
+        }
+        if (q.acceptingOrders() != null) {
+            r.setAcceptingOrders(q.acceptingOrders());
+        }
+        if (q.defaultDeliveryFee() != null) {
+            r.setDefaultDeliveryFee(q.defaultDeliveryFee());
+        }
+        if (q.minOrderAmount() != null) {
+            r.setMinOrderAmount(q.minOrderAmount());
+        }
+        if (q.avgPrepMinutes() != null) {
+            r.setAvgPrepMinutes(q.avgPrepMinutes());
+        }
         return toDto(r);
     }
 
@@ -262,13 +322,28 @@ public class AdminCatalogService {
         if (q.sortOrder() != null) {
             m.setSortOrder(q.sortOrder());
         }
-        m.setCategory(q.categoryId() == null ? null : categoryRepository.findById(q.categoryId())
-                .orElseThrow(() -> ApiException.badRequest("INVALID_CATEGORY", "الفئة غير موجودة")));
+        // category_ids (new, many) wins over category_id (old, one); the first id stays the item's main category
+        List<UUID> wanted = q.categoryIds() != null ? q.categoryIds()
+                : q.categoryId() != null ? List.of(q.categoryId()) : List.of();
+        List<UUID> distinct = wanted.stream().filter(java.util.Objects::nonNull).distinct().toList();
+        java.util.Map<UUID, Category> found = new java.util.HashMap<>();
+        categoryRepository.findAllById(distinct).forEach(c -> found.put(c.getId(), c));
+        if (found.size() != distinct.size()) {
+            throw ApiException.badRequest("INVALID_CATEGORY", "الفئة غير موجودة");
+        }
+        m.getCategories().clear();
+        distinct.forEach(id -> m.getCategories().add(found.get(id)));
+        m.setCategory(distinct.isEmpty() ? null : found.get(distinct.get(0)));
     }
 
     private MenuItemAdminDto toDto(MenuItem m) {
+        List<UUID> categoryIds = m.getCategories().stream().map(Category::getId).toList();
+        if (categoryIds.isEmpty() && m.getCategory() != null) {
+            categoryIds = List.of(m.getCategory().getId());
+        }
         return new MenuItemAdminDto(m.getId(), m.getName(), m.getDescription(), m.getPrice(), m.getImageUrl(),
-                m.isAvailable(), m.getSortOrder(), m.getCategory() == null ? null : m.getCategory().getId());
+                m.isAvailable(), m.getSortOrder(), m.getCategory() == null ? null : m.getCategory().getId(),
+                categoryIds);
     }
 
     // ------------------------------------------------------------ delivery zones

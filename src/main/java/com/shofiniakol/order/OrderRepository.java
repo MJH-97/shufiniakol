@@ -41,6 +41,28 @@ public interface OrderRepository extends JpaRepository<Order, UUID>, JpaSpecific
     List<Object[]> statsForRestaurants(@Param("status") OrderStatus status, @Param("from") Instant from,
                                        @Param("to") Instant to, @Param("restaurantIds") Collection<UUID> restaurantIds);
 
+    // ---- restaurant dashboard (home screen + orders screen) ----
+    Page<Order> findByRestaurantIdIn(Collection<UUID> restaurantIds, Pageable pageable);
+
+    long countByRestaurantIdInAndStatus(Collection<UUID> restaurantIds, OrderStatus status);
+
+    /** Distinct customers who ordered (and did not cancel) from these restaurants. */
+    @Query("""
+            select count(distinct o.userId) from CustomerOrder o
+            where o.restaurant.id in :restaurantIds and o.status <> :excluded
+            """)
+    long countCustomers(@Param("restaurantIds") Collection<UUID> restaurantIds, @Param("excluded") OrderStatus excluded);
+
+    /** [title, units sold] best sellers, most sold first (use a Pageable to limit). */
+    @Query("""
+            select i.title, sum(i.quantity) from CustomerOrder o join o.items i
+            where o.restaurant.id in :restaurantIds and o.status <> :excluded
+              and o.createdAt >= :from and o.createdAt < :to
+            group by i.title order by sum(i.quantity) desc
+            """)
+    List<Object[]> topItems(@Param("restaurantIds") Collection<UUID> restaurantIds, @Param("excluded") OrderStatus excluded,
+                            @Param("from") Instant from, @Param("to") Instant to, Pageable pageable);
+
     @Query("select o.status, count(o) from CustomerOrder o where o.createdAt >= :from and o.createdAt < :to group by o.status")
     List<Object[]> countByStatusAll(@Param("from") Instant from, @Param("to") Instant to);
 

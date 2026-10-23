@@ -10,6 +10,8 @@ import com.shofiniakol.admin.AdminDtos.OfferRequest;
 import com.shofiniakol.alert.PriceAlertService;
 import com.shofiniakol.catalog.Category;
 import com.shofiniakol.catalog.CategoryRepository;
+import com.shofiniakol.catalog.MenuItem;
+import com.shofiniakol.catalog.MenuItemRepository;
 import com.shofiniakol.catalog.Offer;
 import com.shofiniakol.catalog.OfferAddon;
 import com.shofiniakol.catalog.OfferAvailability;
@@ -35,6 +37,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -43,6 +46,7 @@ public class AdminOfferService {
 
     private final OfferRepository offerRepository;
     private final CategoryRepository categoryRepository;
+    private final MenuItemRepository menuItemRepository;
     private final PriceHistoryRepository priceHistoryRepository;
     private final PriceAlertService alertService;
     private final FavoriteRepository favoriteRepository;
@@ -141,8 +145,7 @@ public class AdminOfferService {
         if (q.endsAt() != null && starts != null && !q.endsAt().isAfter(starts)) {
             throw ApiException.badRequest("INVALID_DATES", "تاريخ الانتهاء يجب أن يكون بعد تاريخ البدء");
         }
-        Category category = categoryRepository.findById(q.categoryId())
-                .orElseThrow(() -> ApiException.badRequest("INVALID_CATEGORY", "الفئة غير موجودة"));
+        Category category = resolveCategory(o, q);
 
         o.setCategory(category);
         o.setTitle(q.title().trim());
@@ -219,6 +222,36 @@ public class AdminOfferService {
                 o.getAvailability().add(w);
             }
         }
+    }
+
+    /**
+     * The dashboard's offer form has no category field, so when category_id is missing it is taken from the offer's
+     * current category (update), else from the first linked menu item that has one, else from the restaurant.
+     */
+    private Category resolveCategory(Offer o, OfferRequest q) {
+        if (q.categoryId() != null) {
+            return categoryRepository.findById(q.categoryId())
+                    .orElseThrow(() -> ApiException.badRequest("INVALID_CATEGORY", "الفئة غير موجودة"));
+        }
+        if (o.getCategory() != null) {
+            return o.getCategory();
+        }
+        if (q.items() != null) {
+            for (OfferItemRequest i : q.items()) {
+                if (i.menuItemId() == null) {
+                    continue;
+                }
+                Optional<Category> fromItem = menuItemRepository
+                        .findByIdAndRestaurantId(i.menuItemId(), o.getRestaurant().getId())
+                        .map(MenuItem::getCategory);
+                if (fromItem.isPresent()) {
+                    return fromItem.get();
+                }
+            }
+        }
+        return o.getRestaurant().getCategories().stream().findFirst()
+                .orElseThrow(() -> ApiException.badRequest("CATEGORY_REQUIRED",
+                        "حدد فئة العرض أو اربطه بأصناف لها فئة"));
     }
 
     private OfferAdminDto toDto(Offer o) {
